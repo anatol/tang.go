@@ -12,17 +12,17 @@ import (
 	"testing"
 )
 
-// A server implementation that redirects requests to the native "tangd" binary.
-// This code is useful for tests
-
-type nativeTang struct {
-	keysDir   string
+// NativeServer is a server implementation that redirects requests to the native "tangd" binary.
+// This code is useful for tests or when one needs a wrapper around tangd binary.
+type NativeServer struct {
+	KeysDir   string
+	Port      int
 	tangdPath string
 	listener  net.Listener
-	port      int
 }
 
-func newNativeTang(keysDir string, port int) (*nativeTang, error) {
+// NewNativeServer creates instance of a native Tang server
+func NewNativeServer(keysDir string, port int) (*NativeServer, error) {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, err
@@ -46,21 +46,23 @@ func newNativeTang(keysDir string, port int) (*nativeTang, error) {
 		return nil, fmt.Errorf("unable to find tangd binary")
 	}
 
-	s := &nativeTang{
-		keysDir:   keysDir,
+	s := &NativeServer{
+		KeysDir:   keysDir,
+		Port:      l.Addr().(*net.TCPAddr).Port,
 		tangdPath: tangdPath,
 		listener:  l,
-		port:      l.Addr().(*net.TCPAddr).Port,
 	}
-	go s.serve()
+	go s.Serve()
 	return s, nil
 }
 
-func (s *nativeTang) stop() {
+// Stop stops the server
+func (s *NativeServer) Stop() {
 	_ = s.listener.Close()
 }
 
-func (s *nativeTang) serve() {
+// Serve serves HTTP requests
+func (s *NativeServer) Serve() {
 	for {
 		conn, err := s.listener.Accept()
 		if errors.Is(err, net.ErrClosed) {
@@ -77,7 +79,7 @@ func (s *nativeTang) serve() {
 	}
 }
 
-func (s *nativeTang) handleConection(conn net.Conn) {
+func (s *NativeServer) handleConection(conn net.Conn) {
 	buf := make([]byte, 4096)
 	n, err := conn.Read(buf)
 	if err != nil && err != io.EOF {
@@ -88,7 +90,7 @@ func (s *nativeTang) handleConection(conn net.Conn) {
 		return
 	}
 
-	tangCmd := exec.Command(s.tangdPath, s.keysDir)
+	tangCmd := exec.Command(s.tangdPath, s.KeysDir)
 	tangCmd.Stdin = bytes.NewReader(buf[:n])
 	tangCmd.Stdout = conn
 	if testing.Verbose() {

@@ -32,10 +32,9 @@ func startTangd(t *testing.T, port int) (int, func()) {
 }
 
 func startNativeTangd(t *testing.T, port int) (int, func()) {
-	srv, err := newNativeTang("testdata/keys", port)
+	srv, err := NewNativeServer("testdata/keys", port)
 	require.NoError(t, err)
-	go srv.serve()
-	return srv.port, func() { srv.stop() }
+	return srv.Port, func() { srv.Stop() }
 }
 
 func runTest(t *testing.T, nativeTangEncrypt, nativeClevisEncrypt, nativeTangDecrypt, nativeClevisDecrypt bool, thp string) {
