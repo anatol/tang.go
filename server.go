@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Server is a HTTP server instance that handles Tang exhange requests
+// Server is a HTTP server instance that handles Tang exchange requests
 type Server struct {
 	http.Server
 	Keys *KeySet

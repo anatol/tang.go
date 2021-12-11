@@ -44,7 +44,7 @@ func NewKeySet() *KeySet {
 	return set
 }
 
-// ReadKeysFromDir reads all keys from the given directory and makes a KeySet instace out of it.
+// ReadKeysFromDir reads all keys from the given directory and makes a KeySet instance out of it.
 // Any key file that starts  from "." (dot) is marked as non-advertised.
 func ReadKeysFromDir(dir string) (*KeySet, error) {
 	ents, err := os.ReadDir(dir)
