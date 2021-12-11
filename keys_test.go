@@ -31,7 +31,7 @@ func TestReadKeysFromDir(t *testing.T) {
 	encodedPayload := base64.RawURLEncoding.EncodeToString([]byte(payload))
 
 	props := make(map[string]interface{})
-	require.NoError(t, json.Unmarshal(keys.defaultAdvertisement, &props))
+	require.NoError(t, json.Unmarshal(keys.DefaultAdvertisement, &props))
 	sigs := props["signatures"].([]interface{})
 	require.Equal(t, encodedPayload, props["payload"])
 	protected := sigs[0].(map[string]interface{})["protected"].(string)
@@ -51,7 +51,7 @@ func TestKeySetAdvertisement(t *testing.T) {
 	require.NoError(t, key.Set(jwk.AlgorithmKey, jwa.ES512))
 	require.NoError(t, ks.AppendKey(key, true))
 	require.NoError(t, ks.RecomputeAdvertisements())
-	require.NotEmpty(t, ks.defaultAdvertisement)
+	require.NotEmpty(t, ks.DefaultAdvertisement)
 }
 
 func TestKeySetRecovery(t *testing.T) {

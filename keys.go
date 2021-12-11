@@ -28,7 +28,7 @@ var algos = []crypto.Hash{
 type KeySet struct {
 	keys                 []*tangKey
 	byThumbprint         map[string]*tangKey // base64(thumbprint)->key map
-	defaultAdvertisement []byte
+	DefaultAdvertisement []byte
 }
 
 type tangKey struct {
@@ -121,12 +121,12 @@ func (ks *KeySet) RecomputeAdvertisements() error {
 		return err
 	}
 
-	ks.defaultAdvertisement = defaultAdvertisement
+	ks.DefaultAdvertisement = defaultAdvertisement
 
 	for _, k := range ks.keys {
 		if keyValidForUse(k, []jwk.KeyOperation{jwk.KeyOpSign}) {
 			if k.advertised {
-				k.advertisement = ks.defaultAdvertisement
+				k.advertisement = ks.DefaultAdvertisement
 			} else {
 				// non-advertized sets need additionally sign payload with advertized key
 				signSet, err := signKeys.Clone()

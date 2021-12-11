@@ -33,7 +33,7 @@ func (srv *Server) advertiseKey(w http.ResponseWriter, req *http.Request) {
 
 		_, _ = w.Write(key.advertisement)
 	} else {
-		_, _ = w.Write(srv.Keys.defaultAdvertisement)
+		_, _ = w.Write(srv.Keys.DefaultAdvertisement)
 	}
 }
 
