@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"github.com/anatol/tang.go"
 	"github.com/jessevdk/go-flags"
 	"github.com/lestrrat-go/jwx/jwk"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,22 +13,9 @@ import (
 
 var opts struct {
 	Args struct {
-		Output string   `positional-arg-name:"output" required:"true"`
-		Key    []string `positional-arg-name:"key" required:"true"`
+		Address string   `positional-arg-name:"address" required:"true"`
+		Key     []string `positional-arg-name:"key" required:"true"`
 	} `positional-args:"true"`
-}
-
-func process() error {
-	ks, err := loadKeys()
-	if err != nil {
-		return err
-	}
-
-	if err := ks.RecomputeAdvertisements(); err != nil {
-		return err
-	}
-
-	return os.WriteFile(opts.Args.Output, ks.DefaultAdvertisement, 0644)
 }
 
 func loadKeys() (*tang.KeySet, error) {
@@ -61,6 +50,37 @@ func loadKeys() (*tang.KeySet, error) {
 	return ks, nil
 }
 
+func exchange() error {
+	conn, err := net.Dial("tcp", opts.Args.Address)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	r := bufio.NewReader(conn)
+	thp, err := r.ReadString('\n')
+	if err != nil {
+		return err
+	}
+	key, err := r.ReadString('\n')
+	if err != nil {
+		return err
+	}
+
+	ks, err := loadKeys()
+	if err != nil {
+		return err
+	}
+
+	out, err := ks.Recover(thp, []byte(key))
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.Write(out)
+	return err
+}
+
 func main() {
 	parser := flags.NewParser(&opts, flags.Default)
 	_, err := parser.Parse()
@@ -72,7 +92,7 @@ func main() {
 		}
 	}
 
-	if err := process(); err != nil {
+	if err := exchange(); err != nil {
 		panic(err)
 	}
 }
