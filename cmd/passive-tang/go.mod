@@ -3,9 +3,8 @@ module github.com/anatol/tang.go/cmd/passive-tang
 go 1.17
 
 require (
-	github.com/anatol/tang.go v0.0.0-00010101000000-000000000000
+	github.com/anatol/tang.go v0.0.0-20211208012421-1f4f2458da04
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/lestrrat-go/jwx v1.2.13
 )
 
 require (
@@ -15,6 +14,7 @@ require (
 	github.com/lestrrat-go/blackmagic v1.0.0 // indirect
 	github.com/lestrrat-go/httpcc v1.0.0 // indirect
 	github.com/lestrrat-go/iter v1.0.1 // indirect
+	github.com/lestrrat-go/jwx v1.2.13 // indirect
 	github.com/lestrrat-go/option v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/crypto v0.0.0-20211209193657-4570a0811e8b // indirect

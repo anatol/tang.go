@@ -24,7 +24,7 @@ func startTangd(t *testing.T, port int) (int, func()) {
 	port = listener.Addr().(*net.TCPAddr).Port
 
 	srv := NewServer()
-	keys, err := ReadKeysFromDir("testdata/keys")
+	keys, err := ReadKeys("testdata/keys")
 	require.NoError(t, err)
 	srv.Keys = keys
 	go srv.Serve(listener)

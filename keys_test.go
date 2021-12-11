@@ -16,7 +16,7 @@ import (
 func TestReadKeysFromDir(t *testing.T) {
 	t.Parallel()
 
-	keys, err := ReadKeysFromDir("testdata/keys")
+	keys, err := ReadKeys("testdata/keys")
 	require.NoError(t, err)
 	require.Len(t, keys.keys, 8)
 	// check that derived keys present with its thumbprint

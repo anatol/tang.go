@@ -44,41 +44,60 @@ func NewKeySet() *KeySet {
 	return set
 }
 
-// ReadKeysFromDir reads all keys from the given directory and makes a KeySet instance out of it.
-// Any key file that starts  from "." (dot) is marked as non-advertised.
-func ReadKeysFromDir(dir string) (*KeySet, error) {
-	ents, err := os.ReadDir(dir)
+func addKey(ks *KeySet, filename string, advertised bool) error {
+	rawKey, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read keys from %s: %v", dir, err)
+		return err
+	}
+	jwkKey, err := jwk.ParseKey(rawKey)
+	if err != nil {
+		return err
 	}
 
-	set := NewKeySet()
+	return ks.AppendKey(jwkKey, advertised)
+}
 
-	for _, e := range ents {
-		if !strings.HasSuffix(e.Name(), ".jwk") {
-			continue
-		}
+// ReadKeys reads all key files and as wells as keys from the given directoris and makes a KeySet instance out of it.
+// Any key file that starts  from "." (dot) is marked as non-advertised.
+// In case of directory scanning only files with *.jwk suffix are parsed as keys, other files are ignored
+func ReadKeys(keyOrDir ...string) (*KeySet, error) {
+	ks := NewKeySet()
 
-		rawKey, err := os.ReadFile(path.Join(dir, e.Name()))
+	for _, k := range keyOrDir {
+		fi, err := os.Stat(k)
 		if err != nil {
 			return nil, err
 		}
-		jwkKey, err := jwk.ParseKey(rawKey)
-		if err != nil {
-			return nil, err
-		}
 
-		advertised := e.Name()[0] != '.'
-		if err := set.AppendKey(jwkKey, advertised); err != nil {
-			return nil, err
+		if fi.IsDir() {
+			ents, err := os.ReadDir(k)
+			if err != nil {
+				return nil, fmt.Errorf("unable to read keys from %s: %v", k, err)
+			}
+
+			for _, e := range ents {
+				if !strings.HasSuffix(e.Name(), ".jwk") {
+					continue
+				}
+				fn := path.Join(k, e.Name())
+				advertised := e.Name()[0] != '.'
+				if err := addKey(ks, fn, advertised); err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			advertised := k[0] != '.'
+			if err := addKey(ks, k, advertised); err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	if err := set.RecomputeAdvertisements(); err != nil {
+	if err := ks.RecomputeAdvertisements(); err != nil {
 		return nil, err
 	}
 
-	return set, nil
+	return ks, nil
 }
 
 // RecomputeAdvertisements recomputes advertisement files for the keys and default for the KeySet itself

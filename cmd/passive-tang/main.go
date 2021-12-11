@@ -4,11 +4,8 @@ import (
 	"bufio"
 	"github.com/anatol/tang.go"
 	"github.com/jessevdk/go-flags"
-	"github.com/lestrrat-go/jwx/jwk"
 	"net"
 	"os"
-	"path/filepath"
-	"strings"
 )
 
 var opts struct {
@@ -16,38 +13,6 @@ var opts struct {
 		Address string   `positional-arg-name:"address" required:"true"`
 		Key     []string `positional-arg-name:"key" required:"true"`
 	} `positional-args:"true"`
-}
-
-func loadKeys() (*tang.KeySet, error) {
-	ks := tang.NewKeySet()
-
-	for _, d := range opts.Args.Key {
-		err := filepath.Walk(d, func(path string, f os.FileInfo, err error) error {
-			if f.IsDir() {
-				return nil
-			}
-
-			if !strings.HasSuffix(f.Name(), ".jwk") {
-				return nil
-			}
-
-			rawKey, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			jwkKey, err := jwk.ParseKey(rawKey)
-			if err != nil {
-				return err
-			}
-
-			advertised := f.Name()[0] != '.'
-			return ks.AppendKey(jwkKey, advertised)
-		})
-		if err != nil {
-			return nil, err
-		}
-	}
-	return ks, nil
 }
 
 func exchange() error {
@@ -67,7 +32,7 @@ func exchange() error {
 		return err
 	}
 
-	ks, err := loadKeys()
+	ks, err := tang.ReadKeys(opts.Args.Key...)
 	if err != nil {
 		return err
 	}
