@@ -5,6 +5,8 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -322,4 +324,44 @@ func signPayload(payload []byte, signKeys jwk.Set) ([]byte, error) {
 		return nil, err
 	}
 	return advertisement, nil
+}
+
+func GenerateVerifyKey() (jwk.Key, error) {
+	k, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	sig, err := jwk.New(k)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := sig.Set(jwk.KeyOpsKey, []jwk.KeyOperation{jwk.KeyOpVerify, jwk.KeyOpSign}); err != nil {
+		return nil, err
+	}
+	if err := sig.Set(jwk.AlgorithmKey, jwa.ES512); err != nil {
+		return nil, err
+	}
+
+	return sig, nil
+}
+
+func GenerateExchangeKey() (jwk.Key, error) {
+	k, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	exc, err := jwk.New(k)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := exc.Set(jwk.KeyOpsKey, []jwk.KeyOperation{jwk.KeyOpDeriveKey}); err != nil {
+		return nil, err
+	}
+	if err := exc.Set(jwk.AlgorithmKey, "ECMR"); err != nil {
+		return nil, err
+	}
+
+	return exc, nil
 }

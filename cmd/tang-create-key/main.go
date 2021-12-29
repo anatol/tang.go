@@ -2,13 +2,10 @@ package main
 
 import (
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/anatol/tang.go"
 	"github.com/jessevdk/go-flags"
-	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"os"
 	"path"
@@ -26,7 +23,12 @@ const (
 	defaultAlgo = crypto.SHA256
 )
 
-func writeKey(key jwk.Key, name string) error {
+func writeKey(fn func() (jwk.Key, error), name string) error {
+	key, err := fn()
+	if err != nil {
+		return err
+	}
+
 	if name == "" {
 		thp, err := key.Thumbprint(defaultAlgo)
 		if err != nil {
@@ -43,51 +45,12 @@ func writeKey(key jwk.Key, name string) error {
 	return os.WriteFile(path.Join(opts.Args.Dir, name), data, 0644)
 }
 
-func generateSig() error {
-	k, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
-	if err != nil {
-		return err
-	}
-	sig, err := jwk.New(k)
-	if err != nil {
-		return err
-	}
-
-	if err := sig.Set(jwk.KeyOpsKey, []jwk.KeyOperation{jwk.KeyOpVerify, jwk.KeyOpSign}); err != nil {
-		return err
-	}
-	if err := sig.Set(jwk.AlgorithmKey, jwa.ES512); err != nil {
-		return err
-	}
-
-	return writeKey(sig, opts.Args.Sig)
-}
-
-func generateExchange() error {
-	k, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
-	if err != nil {
-		return err
-	}
-	exc, err := jwk.New(k)
-	if err != nil {
-		return err
-	}
-
-	if err := exc.Set(jwk.KeyOpsKey, []jwk.KeyOperation{jwk.KeyOpDeriveKey}); err != nil {
-		return err
-	}
-	if err := exc.Set(jwk.AlgorithmKey, "ECMR"); err != nil {
-		return err
-	}
-
-	return writeKey(exc, opts.Args.Exc)
-}
-
 func generate() error {
-	if err := generateSig(); err != nil {
+	if err := writeKey(tang.GenerateVerifyKey, opts.Args.Sig); err != nil {
 		return err
 	}
-	if err := generateExchange(); err != nil {
+
+	if err := writeKey(tang.GenerateExchangeKey, opts.Args.Exc); err != nil {
 		return err
 	}
 
