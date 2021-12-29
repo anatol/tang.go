@@ -19,7 +19,7 @@ func main() {
 	flag.Parse()
 
 	srv := tang.NewServer()
-	srv.Keys, err = tang.ReadKeysFromDir(*dir)
+	srv.Keys, err = tang.ReadKeys(*dir)
 	if err != nil {
 		log.Fatal(err)
 	}
