@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/anatol/clevis.go v0.0.0-20220316013604-f095d3d90310
+	github.com/jessevdk/go-flags v1.5.0
 	github.com/lestrrat-go/jwx v1.2.20
 	github.com/stretchr/testify v1.7.1
 )
