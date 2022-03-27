@@ -5,12 +5,13 @@ import (
 	"crypto/elliptic"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"math/rand"
 	"testing"
+
+	"github.com/lestrrat-go/jwx/jwa"
+	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/stretchr/testify/require"
 )
 
 func TestReadKeysFromDir(t *testing.T) {

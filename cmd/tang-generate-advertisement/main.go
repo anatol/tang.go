@@ -1,9 +1,10 @@
 package main
 
 import (
+	"os"
+
 	"github.com/anatol/tang.go"
 	"github.com/jessevdk/go-flags"
-	"os"
 )
 
 var opts struct {

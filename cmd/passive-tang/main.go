@@ -2,10 +2,11 @@ package main
 
 import (
 	"bufio"
-	"github.com/anatol/tang.go"
-	"github.com/jessevdk/go-flags"
 	"net"
 	"os"
+
+	"github.com/anatol/tang.go"
+	"github.com/jessevdk/go-flags"
 )
 
 var opts struct {

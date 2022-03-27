@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"github.com/anatol/tang.go"
 	"log"
 	"strconv"
+
+	"github.com/anatol/tang.go"
 )
 
 var (

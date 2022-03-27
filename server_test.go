@@ -4,10 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/anatol/clevis.go"
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jws"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net"
 	"net/http"
@@ -15,6 +11,11 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/anatol/clevis.go"
+	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/jws"
+	"github.com/stretchr/testify/require"
 )
 
 func startTangd(t *testing.T, port int) (int, func()) {

@@ -4,11 +4,12 @@ import (
 	"crypto"
 	"encoding/base64"
 	"encoding/json"
+	"os"
+	"path"
+
 	"github.com/anatol/tang.go"
 	"github.com/jessevdk/go-flags"
 	"github.com/lestrrat-go/jwx/jwk"
-	"os"
-	"path"
 )
 
 var opts struct {

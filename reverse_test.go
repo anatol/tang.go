@@ -2,11 +2,12 @@ package tang
 
 import (
 	"bufio"
-	"github.com/stretchr/testify/require"
 	"net"
 	"strconv"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestReverseTangHandshake(t *testing.T) {
