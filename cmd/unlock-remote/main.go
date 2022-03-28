@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"net"
 	"os"
 
 	"github.com/anatol/tang.go"
@@ -17,34 +15,12 @@ var opts struct {
 }
 
 func exchange() error {
-	conn, err := net.Dial("tcp", opts.Args.Address)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	r := bufio.NewReader(conn)
-	thp, err := r.ReadString('\n')
-	if err != nil {
-		return err
-	}
-	key, err := r.ReadString('\n')
-	if err != nil {
-		return err
-	}
-
 	ks, err := tang.ReadKeys(opts.Args.Key...)
 	if err != nil {
 		return err
 	}
 
-	out, err := ks.Recover(thp, []byte(key))
-	if err != nil {
-		return err
-	}
-
-	_, err = conn.Write(out)
-	return err
+	return tang.ReverseTangHandshake(opts.Args.Address, ks)
 }
 
 func main() {
