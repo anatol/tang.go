@@ -5,6 +5,7 @@ import (
 	"net"
 )
 
+// ReverseTangHandshake performs a key exchange with "remote" clevis client
 func ReverseTangHandshake(address string, ks *KeySet) error {
 	conn, err := net.Dial("tcp", address)
 	if err != nil {

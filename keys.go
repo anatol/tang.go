@@ -72,7 +72,7 @@ func (ks *KeySet) addKey(filename string, advertised bool) error {
 	return nil
 }
 
-// ReadKeys reads all key files and as wells as keys from the given directoris and makes a KeySet instance out of it.
+// ReadKeys reads all key files and as wells as keys from the given directories and makes a KeySet instance out of it.
 // Any key file that starts  from "." (dot) is marked as non-advertised.
 // In case of directory scanning only files with *.jwk suffix are parsed as keys, other files are ignored
 func ReadKeys(keyOrDir ...string) (*KeySet, error) {
@@ -132,7 +132,6 @@ func (ks *KeySet) RecomputeAdvertisements() error {
 		}
 	}
 
-	// TOTHINK: upstream tang creates a new pair of keys if none exists in the dir
 	if advertisedKeys.Len() == 0 {
 		return fmt.Errorf("no advertised keys found")
 	}
@@ -339,6 +338,7 @@ func signPayload(payload []byte, signKeys jwk.Set) ([]byte, error) {
 	return advertisement, nil
 }
 
+// GenerateVerifyKey generates a verify/sign key for Tang
 func GenerateVerifyKey() (jwk.Key, error) {
 	k, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
@@ -359,6 +359,7 @@ func GenerateVerifyKey() (jwk.Key, error) {
 	return sig, nil
 }
 
+// GenerateExchangeKey generates an exchange key for Tang
 func GenerateExchangeKey() (jwk.Key, error) {
 	k, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	if err != nil {
