@@ -47,7 +47,7 @@ func NewKeySet() *KeySet {
 	return set
 }
 
-func addKey(ks *KeySet, filename string, advertised bool) error {
+func (ks *KeySet) addKey(filename string, advertised bool) error {
 	rawKey, err := os.ReadFile(filename)
 	if err != nil {
 		return err
@@ -84,13 +84,13 @@ func ReadKeys(keyOrDir ...string) (*KeySet, error) {
 				}
 				fn := path.Join(k, e.Name())
 				advertised := e.Name()[0] != '.'
-				if err := addKey(ks, fn, advertised); err != nil {
+				if err := ks.addKey(fn, advertised); err != nil {
 					return nil, err
 				}
 			}
 		} else {
-			advertised := k[0] != '.'
-			if err := addKey(ks, k, advertised); err != nil {
+			advertised := path.Base(k)[0] != '.'
+			if err := ks.addKey(k, advertised); err != nil {
 				return nil, err
 			}
 		}
