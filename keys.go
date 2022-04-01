@@ -52,12 +52,24 @@ func (ks *KeySet) addKey(filename string, advertised bool) error {
 	if err != nil {
 		return err
 	}
-	jwkKey, err := jwk.ParseKey(rawKey)
+	s, err := jwk.Parse(rawKey)
 	if err != nil {
 		return err
 	}
 
-	return ks.AppendKey(jwkKey, advertised)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for iter := s.Iterate(ctx); iter.Next(ctx); {
+		pair := iter.Pair()
+		key := pair.Value.(jwk.Key)
+
+		if err := ks.AppendKey(key, advertised); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ReadKeys reads all key files and as wells as keys from the given directoris and makes a KeySet instance out of it.
