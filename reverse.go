@@ -21,16 +21,17 @@ func ReverseTangHandshake(address string, ks *KeySet) error {
 	}
 
 	buff := bufio.NewReader(conn)
-	thp, _, err := buff.ReadLine()
+	t, _, err := buff.ReadLine()
 	if err != nil {
 		return err
 	}
+	thp := string(t)
 	xchgKey, _, err := buff.ReadLine()
 	if err != nil {
 		return err
 	}
 
-	out, err := ks.Recover(string(thp), xchgKey)
+	out, err := ks.Recover(thp, xchgKey)
 	if err != nil {
 		return err
 	}
