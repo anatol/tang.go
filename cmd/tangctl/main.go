@@ -22,8 +22,7 @@ const (
 
 func main() {
 	var opts struct {
-		Create struct {
-		} `command:"create" description:"Generate a private key"`
+		Create    struct{} `command:"create" description:"Generate a private key"`
 		UnpackKey struct {
 			OutputDir string `long:"output-dir" default:"." description:"Output directory"`
 			Alg       string `long:"alg" description:"Hash algorithm" default:"sha256" choice:"sha1" choice:"sha256"`
@@ -120,13 +119,12 @@ func unpackKey(outDir, alg, key string) error {
 			return err
 		}
 		name := base64.RawURLEncoding.EncodeToString(thp)
-		if err := os.WriteFile(path.Join(outDir, name+".jwk"), keyData, 0644); err != nil {
+		if err := os.WriteFile(path.Join(outDir, name+".jwk"), keyData, 0o644); err != nil {
 			return err
 		}
 	}
 
 	return nil
-
 }
 
 func unlock(address string, key []string) error {
