@@ -31,6 +31,7 @@ func NewNativeServer(keysDir string, port int) (*NativeServer, error) {
 	// different OS use different tang server binary location
 	tangLocations := []string{
 		"/usr/lib/",
+		"/usr/libexec/",
 		"/usr/lib/x86_64-linux-gnu/",
 	}
 

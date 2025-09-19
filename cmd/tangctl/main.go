@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto"
 	"encoding/base64"
 	"encoding/json"
@@ -13,7 +12,7 @@ import (
 
 	"github.com/anatol/tang.go"
 	"github.com/jessevdk/go-flags"
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwk"
 )
 
 const (
@@ -103,11 +102,11 @@ func unpackKey(outDir, alg, key string) error {
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	for iter := keys.Iterate(ctx); iter.Next(ctx); {
-		pair := iter.Pair()
-		k := pair.Value.(jwk.Key)
+	for i := range keys.Len() {
+		k, ok := keys.Key(i)
+		if !ok {
+			return fmt.Errorf("failed to get key at index %d", i)
+		}
 
 		keyData, err := json.Marshal(k)
 		if err != nil {
@@ -179,11 +178,11 @@ func generateThumbprint(alg string, key string) error {
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	for iter := keys.Iterate(ctx); iter.Next(ctx); {
-		pair := iter.Pair()
-		key := pair.Value.(jwk.Key)
+	for i := range keys.Len() {
+		key, ok := keys.Key(i)
+		if !ok {
+			return fmt.Errorf("failed to get key at index %d", i)
+		}
 
 		thp, err := key.Thumbprint(h)
 		if err != nil {
@@ -216,8 +215,8 @@ func createKey() error {
 	}
 
 	ks := jwk.NewSet()
-	ks.Add(vk)
-	ks.Add(ek)
+	ks.AddKey(vk)
+	ks.AddKey(ek)
 
 	data, err := json.Marshal(ks)
 	if err != nil {

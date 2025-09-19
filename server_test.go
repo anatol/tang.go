@@ -13,8 +13,8 @@ import (
 	"testing"
 
 	"github.com/anatol/clevis.go"
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jws"
+	"github.com/lestrrat-go/jwx/v3/jwk"
+	"github.com/lestrrat-go/jwx/v3/jws"
 	"github.com/stretchr/testify/require"
 )
 
@@ -158,9 +158,9 @@ func TestAdvertisingIsPublicKey(t *testing.T) {
 		require.NoError(t, err)
 		keys, err := jwk.Parse(msg.Payload())
 		require.NoError(t, err)
-		for iter := keys.Iterate(context.TODO()); iter.Next(context.TODO()); {
-			pair := iter.Pair()
-			key := pair.Value.(jwk.Key)
+
+		for i := range keys.Len() {
+			key, _ := keys.Key(i)
 
 			switch key.(type) {
 			case jwk.ECDSAPublicKey:
