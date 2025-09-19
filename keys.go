@@ -2,7 +2,6 @@ package tang
 
 import (
 	"bytes"
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -14,10 +13,16 @@ import (
 	"path"
 	"strings"
 
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jws"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwk"
+	"github.com/lestrrat-go/jwx/v3/jws"
 )
+
+func init() {
+	if _, ok := jwa.LookupSignatureAlgorithm("ECMR"); !ok {
+		jwa.RegisterSignatureAlgorithm(jwa.NewSignatureAlgorithm("ECMR"))
+	}
+}
 
 var algos = []crypto.Hash{
 	crypto.SHA1,   /* S1 */
@@ -57,12 +62,11 @@ func (ks *KeySet) addKey(filename string, advertised bool) error {
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	for iter := s.Iterate(ctx); iter.Next(ctx); {
-		pair := iter.Pair()
-		key := pair.Value.(jwk.Key)
+	for i := range s.Len() {
+		key, ok := s.Key(i)
+		if !ok {
+			return fmt.Errorf("unable to get key from set %s", filename)
+		}
 
 		if err := ks.AppendKey(key, advertised); err != nil {
 			return err
@@ -123,11 +127,11 @@ func (ks *KeySet) RecomputeAdvertisements() error {
 	for _, k := range ks.keys {
 		if k.advertised {
 			if keyValidForUse(k, []jwk.KeyOperation{jwk.KeyOpVerify, jwk.KeyOpSign}) {
-				signKeys.Add(k)
-				advertisedKeys.Add(k)
+				signKeys.AddKey(k)
+				advertisedKeys.AddKey(k)
 			}
 			if keyValidForUse(k, []jwk.KeyOperation{jwk.KeyOpDeriveKey}) {
-				advertisedKeys.Add(k)
+				advertisedKeys.AddKey(k)
 			}
 		}
 	}
@@ -166,7 +170,7 @@ func (ks *KeySet) RecomputeAdvertisements() error {
 				if err != nil {
 					return err
 				}
-				signSet.Add(k)
+				signSet.AddKey(k)
 				advertisement, err := signPayload(payload, signSet)
 				if err != nil {
 					return err
@@ -207,7 +211,12 @@ func (ks *KeySet) RecoverKey(thp string, webKey jwk.Key) (jwk.Key, error) {
 	if !keyValidForUse(key, []jwk.KeyOperation{jwk.KeyOpDeriveKey}) {
 		return nil, fmt.Errorf("key '%s' is not a derive key", thp)
 	}
-	if key.Algorithm() != "ECMR" {
+	alg, ok := key.Algorithm()
+	if !ok {
+		return nil, fmt.Errorf("key '%s' does not have an algorithm", thp)
+	}
+
+	if alg.String() != "ECMR" {
 		return nil, fmt.Errorf("key '%s' is not ECMR", thp)
 	}
 
@@ -230,23 +239,28 @@ func (ks *KeySet) Recover(thp string, data []byte) ([]byte, error) {
 }
 
 func (k *tangKey) exchange(kty jwk.Key) (jwk.Key, error) {
-	if len(kty.KeyOps()) != 0 && !keyValidForUse(kty, []jwk.KeyOperation{jwk.KeyOpDeriveKey}) {
+	keyops, _ := kty.KeyOps()
+	if len(keyops) != 0 && !keyValidForUse(kty, []jwk.KeyOperation{jwk.KeyOpDeriveKey}) {
 		return nil, fmt.Errorf("expecting derive key in the request")
 	}
-	if kty.KeyType() != jwa.EC {
+	if kty.KeyType() != jwa.EC() {
 		return nil, fmt.Errorf("expecting EC key in the request")
 	}
-	if kty.Algorithm() != "ECMR" {
+	alg, ok := kty.Algorithm()
+	if !ok {
+		return nil, fmt.Errorf("expecting algorithm in the request")
+	}
+	if !ok || alg.String() != "ECMR" {
 		return nil, fmt.Errorf("expecting ECMR key in the request")
 	}
 
 	var webKey ecdsa.PublicKey
-	if err := kty.Raw(&webKey); err != nil {
+	if err := jwk.Export(kty, &webKey); err != nil {
 		return nil, err
 	}
 
 	var ecKey ecdsa.PrivateKey
-	if err := k.Raw(&ecKey); err != nil {
+	if err := jwk.Export(k.Key, &ecKey); err != nil {
 		return nil, err
 	}
 
@@ -257,7 +271,7 @@ func (k *tangKey) exchange(kty jwk.Key) (jwk.Key, error) {
 
 	x, y := ecCurve.ScalarMult(webKey.X, webKey.Y, ecKey.D.Bytes())
 
-	xfrKey, err := jwk.New(&ecdsa.PublicKey{Curve: ecCurve, X: x, Y: y})
+	xfrKey, err := jwk.Import(&ecdsa.PublicKey{Curve: ecCurve, X: x, Y: y})
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +288,11 @@ func (k *tangKey) exchange(kty jwk.Key) (jwk.Key, error) {
 func keyValidForUse(k jwk.Key, use []jwk.KeyOperation) bool {
 	for _, u := range use {
 		matches := false
-		for _, o := range k.KeyOps() {
+		keyops, ok := k.KeyOps()
+		if !ok {
+			continue
+		}
+		for _, o := range keyops {
 			if o == u {
 				matches = true
 				break
@@ -290,17 +308,20 @@ func keyValidForUse(k jwk.Key, use []jwk.KeyOperation) bool {
 }
 
 func signPayload(payload []byte, signKeys jwk.Set) ([]byte, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	m := jws.NewMessage()
 	m.SetPayload(payload)
-	for iter := signKeys.Iterate(ctx); iter.Next(ctx); {
-		pair := iter.Pair()
-		key := pair.Value.(jwk.Key)
+	for i := range signKeys.Len() {
+		key, ok := signKeys.Key(i)
+		if !ok {
+			return nil, fmt.Errorf("unable to get key from set")
+		}
 
 		h := jws.NewHeaders()
-		if err := h.Set(jws.AlgorithmKey, key.Algorithm()); err != nil {
+		alg, ok := key.Algorithm()
+		if !ok {
+			return nil, fmt.Errorf("key does not have an algorithm")
+		}
+		if err := h.Set(jws.AlgorithmKey, alg); err != nil {
 			return nil, err
 		}
 		if err := h.Set(jws.ContentTypeKey, "jwk-set+json"); err != nil {
@@ -316,11 +337,11 @@ func signPayload(payload []byte, signKeys jwk.Set) ([]byte, error) {
 		p.WriteByte('.')
 		p.WriteString(base64.RawURLEncoding.EncodeToString(payload))
 
-		signer, err := jws.NewSigner(jwa.SignatureAlgorithm(key.Algorithm()))
+		signer, err := jws.SignerFor(alg.(jwa.SignatureAlgorithm))
 		if err != nil {
 			return nil, err
 		}
-		signature, err := signer.Sign(p.Bytes(), key)
+		signature, err := signer.Sign(key, p.Bytes())
 		if err != nil {
 			return nil, err
 		}
@@ -344,7 +365,7 @@ func GenerateVerifyKey() (jwk.Key, error) {
 	if err != nil {
 		return nil, err
 	}
-	sig, err := jwk.New(k)
+	sig, err := jwk.Import(k)
 	if err != nil {
 		return nil, err
 	}
@@ -365,7 +386,7 @@ func GenerateExchangeKey() (jwk.Key, error) {
 	if err != nil {
 		return nil, err
 	}
-	exc, err := jwk.New(k)
+	exc, err := jwk.Import(k)
 	if err != nil {
 		return nil, err
 	}
