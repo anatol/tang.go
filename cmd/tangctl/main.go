@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
@@ -83,7 +82,7 @@ func main() {
 }
 
 func unpackKey(outDir, alg, key string) error {
-	data, err := ioutil.ReadFile(key)
+	data, err := os.ReadFile(key)
 	if err != nil {
 		return err
 	}
@@ -159,7 +158,7 @@ func byHashName(name string) (crypto.Hash, error) {
 }
 
 func generateThumbprint(alg string, key string) error {
-	data, err := ioutil.ReadFile(key)
+	data, err := os.ReadFile(key)
 	if err != nil {
 		return err
 	}
