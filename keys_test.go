@@ -91,3 +91,18 @@ func TestKeySetRecovery(t *testing.T) {
 	require.Equal(t, &x, finalKeyPub.X)
 	require.Equal(t, &y, finalKeyPub.Y)
 }
+
+func TestGenerateTangKeys(t *testing.T) {
+	vk, err := GenerateVerifyKey()
+	require.NoError(t, err)
+
+	ek, err := GenerateExchangeKey()
+	require.NoError(t, err)
+
+	ks := jwk.NewSet()
+	ks.AddKey(vk)
+	ks.AddKey(ek)
+
+	_, err = json.Marshal(ks)
+	require.NoError(t, err)
+}

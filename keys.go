@@ -373,7 +373,7 @@ func GenerateVerifyKey() (jwk.Key, error) {
 	if err := sig.Set(jwk.KeyOpsKey, []jwk.KeyOperation{jwk.KeyOpVerify, jwk.KeyOpSign}); err != nil {
 		return nil, err
 	}
-	if err := sig.Set(jwk.AlgorithmKey, jwa.ES512); err != nil {
+	if err := sig.Set(jwk.AlgorithmKey, jwa.ES512()); err != nil {
 		return nil, err
 	}
 
