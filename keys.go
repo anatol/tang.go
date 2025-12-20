@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/lestrrat-go/jwx/v3/jwa"
@@ -292,11 +293,8 @@ func keyValidForUse(k jwk.Key, use []jwk.KeyOperation) bool {
 		if !ok {
 			continue
 		}
-		for _, o := range keyops {
-			if o == u {
-				matches = true
-				break
-			}
+		if slices.Contains(keyops, u) {
+			matches = true
 		}
 
 		if !matches {
