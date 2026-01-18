@@ -43,10 +43,15 @@ func (srv *Server) recoverKey(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	in, err := io.ReadAll(req.Body)
+	const maxBodySize = 64*1024 // 64KB
+
+	in, err := io.ReadAll(io.LimitReader(req.Body, maxBodySize+1))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+	if len(in) > maxBodySize {
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
 	}
 
 	thp := req.RequestURI[5:]
