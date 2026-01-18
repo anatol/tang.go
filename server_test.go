@@ -210,6 +210,21 @@ func encryptWithTang(t *testing.T, nativeTang bool, thp string, errorMessage str
 	require.Contains(t, string(cmdErr.Bytes()), errorMessage)
 }
 
+func TestRecoverKeyBodyTooLarge(t *testing.T) {
+	t.Parallel()
+
+	port, stopTang := startTangd(t, 0)
+	defer stopTang()
+
+	// Create a body larger than 64KB
+	body := bytes.Repeat([]byte("x"), 64*1024+1)
+
+	url := fmt.Sprintf("http://localhost:%d/rec/somethumbprint", port)
+	resp, err := http.Post(url, "application/octet-stream", bytes.NewReader(body))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusRequestEntityTooLarge, resp.StatusCode)
+}
+
 func TestEncryptWithInvalidThp(t *testing.T) {
 	t.Parallel()
 

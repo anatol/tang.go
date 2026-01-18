@@ -52,6 +52,7 @@ func (srv *Server) recoverKey(w http.ResponseWriter, req *http.Request) {
 	}
 	if len(in) > maxBodySize {
 		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		return
 	}
 
 	thp := req.RequestURI[5:]
