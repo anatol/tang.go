@@ -251,7 +251,7 @@ func (k *tangKey) exchange(kty jwk.Key) (jwk.Key, error) {
 	if !ok {
 		return nil, fmt.Errorf("expecting algorithm in the request")
 	}
-	if !ok || alg.String() != "ECMR" {
+	if alg.String() != "ECMR" {
 		return nil, fmt.Errorf("expecting ECMR key in the request")
 	}
 
