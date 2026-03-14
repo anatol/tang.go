@@ -73,14 +73,14 @@ func (s *NativeServer) Serve() {
 			log.Println("accept error", err)
 			return
 		}
-		s.handleConection(conn)
+		s.handleConnection(conn)
 		if err := conn.Close(); err != nil {
 			log.Print(err)
 		}
 	}
 }
 
-func (s *NativeServer) handleConection(conn net.Conn) {
+func (s *NativeServer) handleConnection(conn net.Conn) {
 	buf := make([]byte, 4096)
 	n, err := conn.Read(buf)
 	if err != nil && err != io.EOF {
