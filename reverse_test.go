@@ -18,8 +18,7 @@ func TestReverseTangHandshake(t *testing.T) {
 	port := l.Addr().(*net.TCPAddr).Port
 
 	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
+	wg.Go(func() {
 		conn, err := l.Accept()
 		require.NoError(t, err)
 
@@ -38,8 +37,7 @@ func TestReverseTangHandshake(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, `{"alg":"ECMR","crv":"P-521","key_ops":["deriveKey"],"kty":"EC","x":"AU9g1_ZVW3Ar3iB9d4FMQ3HuTKP6qc7Fww8dGY5rOXn1TCqd6LRXmxsDGbvZX2EmzJwI0BBERymAtOvKBram2QIU","y":"AXHt-jUcqX-D9qch4ZGDudbD--PIhHHq9UhEqhvoUws9-RYbd8JJTFYe2PQCF4qs2XTh27hnAMbOhGSbsLEYRJR4"}`, string(returnKey))
 
-		wg.Done()
-	}()
+	})
 
 	require.NoError(t, ReverseTangHandshake(":"+strconv.Itoa(port), ks))
 	wg.Wait()

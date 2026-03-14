@@ -33,11 +33,11 @@ func TestReadKeysFromDir(t *testing.T) {
 	payload := `{"keys":[{"alg":"ES512","crv":"P-521","key_ops":["sign","verify"],"kty":"EC","x":"AM8zO6IcjLdz8gXve0Zk3lMnyyC01Ssk3le-MxfA5H96o1v82nF1WiyjYaFOqs22uO5SAyBowdqkH35ncI06oH_D","y":"AZyVs2E2NG8Jfm4eDZ8Vi0h-r2SHZZNlv6JVRb36rtFEMWOFToS7sXCK3rIsj28C-CXVRfhBqYJ2Ojf7UIa6XdMP"},{"alg":"ECMR","crv":"P-521","key_ops":["deriveKey"],"kty":"EC","x":"AP98N8OTULnSt7B4l_PcV2dqaX1ev0rPqini2MnPFE-kxEDZ1rAsFuI8tWwAiQVKKqbR3bsuzwpuSJ1AZFaN1gGq","y":"ABTPo_P76CzPOTqyf248PZKyd3HOmPzSHsN7MdXGkMMUORXRVQzhQPzqfH_oQoaOh7Pd6cYhtncAZb-P3PgISFNx"},{"alg":"ES512","crv":"P-521","key_ops":["sign","verify"],"kty":"EC","x":"AWyFgBsVjKf2Bt2fixrRTDW3j81UaWikqjxCpXkKst3o_pOO-CbpZQvR_xLP9vN4AnNndB-tyME6Z5F5c7uFKGDP","y":"AWo220Mzz6rmd5xjt4Ppbt3upTflj13gIkObsW3I5kFEfwmWYl8NYLV9__Fizd7L5vg-W7YWzf5bDasvryLv3Hvk"},{"alg":"ECMR","crv":"P-521","key_ops":["deriveKey"],"kty":"EC","x":"AOLdTU96iPUxCapPox8FUtsxt6assAVXidnWg2ldTajzWd-WiXufnGLgW2LfTYH8dk_XpzFHL_e1fzkaS9XtmJxd","y":"ARRFWvw59O2N3X0xCGPgz9eLtoBS951YKpZPU03VFnC40mR_lqfJ64ixeKmN3xXzemsFaFz9YqcgCHEqDuP4BNFZ"}]}`
 	encodedPayload := base64.RawURLEncoding.EncodeToString([]byte(payload))
 
-	props := make(map[string]interface{})
+	props := make(map[string]any)
 	require.NoError(t, json.Unmarshal(keys.DefaultAdvertisement, &props))
-	sigs := props["signatures"].([]interface{})
+	sigs := props["signatures"].([]any)
 	require.Equal(t, encodedPayload, props["payload"])
-	protected := sigs[0].(map[string]interface{})["protected"].(string)
+	protected := sigs[0].(map[string]any)["protected"].(string)
 	require.Equal(t, "eyJhbGciOiJFUzUxMiIsImN0eSI6Imp3ay1zZXQranNvbiJ9", protected)
 }
 
