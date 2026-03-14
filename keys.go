@@ -287,21 +287,16 @@ func (k *tangKey) exchange(kty jwk.Key) (jwk.Key, error) {
 }
 
 func keyValidForUse(k jwk.Key, use []jwk.KeyOperation) bool {
+	keyops, ok := k.KeyOps()
+	if !ok {
+		// Per JWK spec, missing key_ops means unrestricted usage
+		return true
+	}
 	for _, u := range use {
-		matches := false
-		keyops, ok := k.KeyOps()
-		if !ok {
-			continue
-		}
-		if slices.Contains(keyops, u) {
-			matches = true
-		}
-
-		if !matches {
+		if !slices.Contains(keyops, u) {
 			return false
 		}
 	}
-
 	return true
 }
 
