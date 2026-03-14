@@ -207,7 +207,7 @@ func encryptWithTang(t *testing.T, nativeTang bool, thp string, errorMessage str
 	var cmdErr bytes.Buffer
 	encryptCmd.Stderr = &cmdErr
 	require.Error(t, encryptCmd.Run())
-	require.Contains(t, string(cmdErr.Bytes()), errorMessage)
+	require.Contains(t, cmdErr.String(), errorMessage)
 }
 
 func TestRecoverKeyBodyTooLarge(t *testing.T) {
