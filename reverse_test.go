@@ -15,6 +15,7 @@ func TestReverseTangHandshake(t *testing.T) {
 	require.NoError(t, err)
 
 	l, err := net.Listen("tcp", ":0")
+	require.NoError(t, err)
 	port := l.Addr().(*net.TCPAddr).Port
 
 	wg := sync.WaitGroup{}
