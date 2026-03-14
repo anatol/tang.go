@@ -240,3 +240,80 @@ func TestEncryptWithInvalidThp(t *testing.T) {
 		}
 	}
 }
+
+func TestUnknownEndpointReturns404(t *testing.T) {
+	t.Parallel()
+
+	port, stopTang := startTangd(t, 0)
+	defer stopTang()
+
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/unknown", port))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+func TestRecoverKeyWithGetMethodFails(t *testing.T) {
+	t.Parallel()
+
+	port, stopTang := startTangd(t, 0)
+	defer stopTang()
+
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/rec/somethp", port))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestRecoverKeyInvalidBody(t *testing.T) {
+	t.Parallel()
+
+	port, stopTang := startTangd(t, 0)
+	defer stopTang()
+
+	url := fmt.Sprintf("http://localhost:%d/rec/somethp", port)
+	resp, err := http.Post(url, "application/json", strings.NewReader("not valid json"))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestRecoverKeyUnknownThumbprint(t *testing.T) {
+	t.Parallel()
+
+	port, stopTang := startTangd(t, 0)
+	defer stopTang()
+
+	// Valid JWK but thumbprint doesn't match any key
+	body := `{"kty":"EC","crv":"P-521","x":"AJHmF7pamkUGBoBoYiOHPz3GzeD8kexttzWvJ2BsQLslgwcZkhODKCo_OJ2WYnDPy4o4b3NIIpdpg8hgklxVjJVe","y":"AJi3YqTPNJOeboS7etpeqCrv3hWfI2yRL0JPVmPMm98lfxZfemkzSAYvuBX0a0hRXQw_HGULBsESUNaMYmxtj7GZ","alg":"ECMR","key_ops":["deriveKey"]}`
+	url := fmt.Sprintf("http://localhost:%d/rec/nonexistent", port)
+	resp, err := http.Post(url, "application/jwk+json", strings.NewReader(body))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestAdvertiseKeyNotFoundThumbprint(t *testing.T) {
+	t.Parallel()
+
+	port, stopTang := startTangd(t, 0)
+	defer stopTang()
+
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/adv/nonexistent", port))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+func TestDefaultAdvertisement(t *testing.T) {
+	t.Parallel()
+
+	port, stopTang := startTangd(t, 0)
+	defer stopTang()
+
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/adv", port))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	data, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.NotEmpty(t, data)
+
+	// Verify it's valid JWS
+	_, err = jws.Parse(data)
+	require.NoError(t, err)
+}

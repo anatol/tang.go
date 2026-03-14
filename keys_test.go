@@ -1,14 +1,15 @@
 package tang
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
-	"math/rand"
 	"testing"
 
 	"github.com/lestrrat-go/jwx/v3/jwa"
@@ -42,11 +43,8 @@ func TestReadKeysFromDir(t *testing.T) {
 }
 
 func TestKeySetAdvertisement(t *testing.T) {
-	s := rand.NewSource(128822)
-	r := rand.New(s)
-
 	ks := NewKeySet()
-	priv, err := ecdsa.GenerateKey(elliptic.P521(), r)
+	priv, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	require.NoError(t, err)
 	key, err := jwk.Import(priv)
 	require.NoError(t, err)
@@ -93,6 +91,8 @@ func TestKeySetRecovery(t *testing.T) {
 }
 
 func TestGenerateTangKeys(t *testing.T) {
+	t.Parallel()
+
 	vk, err := GenerateVerifyKey()
 	require.NoError(t, err)
 
@@ -105,4 +105,160 @@ func TestGenerateTangKeys(t *testing.T) {
 
 	_, err = json.Marshal(ks)
 	require.NoError(t, err)
+}
+
+func TestKeyValidForUse(t *testing.T) {
+	t.Parallel()
+
+	// Key with no key_ops set should be valid for any use
+	k, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	require.NoError(t, err)
+	key, err := jwk.Import(k)
+	require.NoError(t, err)
+	require.True(t, keyValidForUse(key, []jwk.KeyOperation{jwk.KeyOpSign}))
+	require.True(t, keyValidForUse(key, []jwk.KeyOperation{jwk.KeyOpDeriveKey}))
+	require.True(t, keyValidForUse(key, []jwk.KeyOperation{jwk.KeyOpVerify, jwk.KeyOpSign}))
+
+	// Key with specific key_ops should only be valid for those ops
+	require.NoError(t, key.Set(jwk.KeyOpsKey, []jwk.KeyOperation{jwk.KeyOpSign, jwk.KeyOpVerify}))
+	require.True(t, keyValidForUse(key, []jwk.KeyOperation{jwk.KeyOpSign}))
+	require.True(t, keyValidForUse(key, []jwk.KeyOperation{jwk.KeyOpVerify}))
+	require.True(t, keyValidForUse(key, []jwk.KeyOperation{jwk.KeyOpSign, jwk.KeyOpVerify}))
+	require.False(t, keyValidForUse(key, []jwk.KeyOperation{jwk.KeyOpDeriveKey}))
+	require.False(t, keyValidForUse(key, []jwk.KeyOperation{jwk.KeyOpSign, jwk.KeyOpDeriveKey}))
+
+	// Empty use list should always return true
+	require.True(t, keyValidForUse(key, []jwk.KeyOperation{}))
+}
+
+func TestRecoverKeyNotFound(t *testing.T) {
+	t.Parallel()
+
+	ks := NewKeySet()
+	_, err := ks.RecoverKey("nonexistent", nil)
+	require.ErrorContains(t, err, "not found")
+}
+
+func TestRecoverKeyNotDeriveKey(t *testing.T) {
+	t.Parallel()
+
+	ks := NewKeySet()
+	k, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	require.NoError(t, err)
+	key, err := jwk.Import(k)
+	require.NoError(t, err)
+	require.NoError(t, key.Set(jwk.KeyOpsKey, []jwk.KeyOperation{jwk.KeyOpSign}))
+	require.NoError(t, key.Set(jwk.AlgorithmKey, jwa.ES512()))
+	require.NoError(t, ks.AppendKey(key, true))
+
+	// Use a SHA-256 thumbprint to look up the key
+	thpBytes, err := key.Thumbprint(crypto.SHA256)
+	require.NoError(t, err)
+	thp := base64.RawURLEncoding.EncodeToString(thpBytes)
+
+	_, err = ks.RecoverKey(thp, nil)
+	require.ErrorContains(t, err, "not a derive key")
+}
+
+func TestRecoverKeyNotECMR(t *testing.T) {
+	t.Parallel()
+
+	ks := NewKeySet()
+	k, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	require.NoError(t, err)
+	key, err := jwk.Import(k)
+	require.NoError(t, err)
+	require.NoError(t, key.Set(jwk.KeyOpsKey, []jwk.KeyOperation{jwk.KeyOpDeriveKey}))
+	require.NoError(t, key.Set(jwk.AlgorithmKey, jwa.ES512()))
+	require.NoError(t, ks.AppendKey(key, true))
+
+	thpBytes, err := key.Thumbprint(crypto.SHA256)
+	require.NoError(t, err)
+	thp := base64.RawURLEncoding.EncodeToString(thpBytes)
+
+	_, err = ks.RecoverKey(thp, nil)
+	require.ErrorContains(t, err, "not ECMR")
+}
+
+func TestRecoverInvalidData(t *testing.T) {
+	t.Parallel()
+
+	ks := NewKeySet()
+	_, err := ks.Recover("somethp", []byte("not valid json"))
+	require.Error(t, err)
+}
+
+func TestReadKeysNonexistentPath(t *testing.T) {
+	t.Parallel()
+
+	_, err := ReadKeys("/nonexistent/path")
+	require.Error(t, err)
+}
+
+func TestReadKeysFromFile(t *testing.T) {
+	t.Parallel()
+
+	keys, err := ReadKeys("testdata/keys/mNmsEWEFdNeALqktQvbhWpHqIZzZ6jMkxQxYBSRMfKQ.jwk")
+	require.NoError(t, err)
+	require.Len(t, keys.keys, 1)
+}
+
+func TestGeneratedKeysCanEncryptAndRecover(t *testing.T) {
+	t.Parallel()
+
+	vk, err := GenerateVerifyKey()
+	require.NoError(t, err)
+	ek, err := GenerateExchangeKey()
+	require.NoError(t, err)
+
+	ks := NewKeySet()
+	require.NoError(t, ks.AppendKey(vk, true))
+	require.NoError(t, ks.AppendKey(ek, true))
+	require.NoError(t, ks.RecomputeAdvertisements())
+	require.NotEmpty(t, ks.DefaultAdvertisement)
+
+	// Create a client-side ephemeral key for recovery
+	ephemeral, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	require.NoError(t, err)
+	ephPub, err := jwk.Import(&ephemeral.PublicKey)
+	require.NoError(t, err)
+	require.NoError(t, ephPub.Set(jwk.AlgorithmKey, "ECMR"))
+	require.NoError(t, ephPub.Set(jwk.KeyOpsKey, []jwk.KeyOperation{jwk.KeyOpDeriveKey}))
+
+	thpBytes, err := ek.Thumbprint(crypto.SHA256)
+	require.NoError(t, err)
+	thp := base64.RawURLEncoding.EncodeToString(thpBytes)
+
+	recovered, err := ks.RecoverKey(thp, ephPub)
+	require.NoError(t, err)
+	require.NotNil(t, recovered)
+}
+
+func TestNewKeySetIsEmpty(t *testing.T) {
+	t.Parallel()
+
+	ks := NewKeySet()
+	require.Empty(t, ks.keys)
+	require.Empty(t, ks.byThumbprint)
+	require.Nil(t, ks.DefaultAdvertisement)
+}
+
+func TestRecomputeAdvertisementsNoKeys(t *testing.T) {
+	t.Parallel()
+
+	ks := NewKeySet()
+	err := ks.RecomputeAdvertisements()
+	require.ErrorContains(t, err, "no advertised keys found")
+}
+
+func TestRecomputeAdvertisementsNoSignKeys(t *testing.T) {
+	t.Parallel()
+
+	ks := NewKeySet()
+	ek, err := GenerateExchangeKey()
+	require.NoError(t, err)
+	require.NoError(t, ks.AppendKey(ek, true))
+
+	err = ks.RecomputeAdvertisements()
+	require.ErrorContains(t, err, "no sign keys found")
 }
