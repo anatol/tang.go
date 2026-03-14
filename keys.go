@@ -166,7 +166,7 @@ func (ks *KeySet) RecomputeAdvertisements() error {
 			if k.advertised {
 				k.advertisement = ks.DefaultAdvertisement
 			} else {
-				// non-advertized sets need additionally sign payload with advertized key
+				// non-advertised sets need to additionally sign payload with advertised key
 				signSet, err := signKeys.Clone()
 				if err != nil {
 					return err
